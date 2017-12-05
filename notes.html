@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <script src="js/vue.js"></script>
+    <style>
+        *{
+            padding:0;
+            margin:0;
+            list-style: none;
+            box-sizing: border-box;
+        }
+        html,body{
+            width:100%;
+            height:100%;
+            overflow: hidden;
+            background:#effaff;
+        }
+        header{
+            width:100%;
+            height:80px;
+            background:#414141;
+            font-size:50px;
+            color:#fff;
+            line-height:80px;
+            display:flex;
+            align-items: center;
+        }
+        header>input{
+            width:500px;
+            height:30px;
+            margin-left:10px;
+            outline:none;
+            border:none;
+            padding:5px;
+        }
+        section{
+            width:100%;
+            height:800px;
+            position:relative;
+            top:0;
+            left:0;
+            right:0;
+            bottom:0;
+        }
+        .list{
+            width:200px;
+            height:200px;
+            border-radius: 5px;
+            position:absolute;
+            display:flex;
+            flex-direction: column;
+        }
+        .list.active{
+            z-index:99;
+        }
+        .list>h1{
+            width: 100%;
+            height:auto;
+            font-size:20px;
+            color:#fff;
+            display:flex;
+            justify-content: space-between;
+        }
+        .list>textarea{
+            border:none;
+            outline:none;
+            resize: none;
+            font-size:20px;
+            font-weight:bold;
+            border-radius: 0 0 5px 5px;
+            flex:1;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <header>
+        便利贴
+        <input type="text" v-model="search">
+        <input type="text" @keydown.enter="adds" v-model="msg" placeholder="notes">
+        <select v-model="activeType">
+            <option :value="type">全部</option>
+            <option v-for="item in type" :value="item">{{item}}</option>
+        </select>
+    </header>
+    <section @dblclick="add">
+       <notes v-for="(items,index) in newnotes" :msg="items" :key="items.id" v-on:schange="update" v-on:delete="del"></notes>
+    </section>
+</div>
+<script>
+//    let arr=[
+//        {id:1,content:'降温了，注意保暖',color:'#ff318e',x:100,y:90,type:'生活'},
+//        {id:2,content:'一路顺风',color:'#ff6700',x:700,y:100,type:'出行'},
+//        {id:3,content:'红黄蓝幼儿园',color:'#9223f4',x:140,y:300,type:'新闻'},
+//        {id:4,content:'运动会',color:'#3895ff',x:400,y:200,type:'体育'},
+//        {id:5,content:'冰川融化',color:'#ffd20c',x:850,y:350,type:'生态'},
+//        {id:6,content:'要去找工作了',color:'#ff9cc9',x:1000,y:140,type:'工作'},
+//    ];
+//    localStorage.notes=JSON.stringify(arr);
+    Vue.component('notes',{
+        props:['msg'],  //props单向：父组件传递给子组件  "msg"是个对象，传过来是地址
+        data:function(){
+            return{
+                smsg: Object.assign({},this.msg)//将msg对象复制过来当做是子组件的数据，这样可以通过修改子组件也可以改父组件
+            }
+        },
+        template:`
+        <div class="list" :style="{border:'2px solid'+smsg.color,left:smsg.x+'px',top:smsg.y+'px'}">
+            <h1 :style="{background:smsg.color}">{{smsg.type}} <span @click="del">x</span></h1>
+            <textarea v-model="smsg.content"></textarea>
+        </div>
+        `,
+        methods:{
+            change(){
+//                this.$emit('pchange',this.name)
+            },
+            del(){
+                this.$emit('delete',this.smsg.id)
+            }
+        },
+        //监听：子组件修改后通知父组件
+        watch:{
+            //对象的监听，用深度监听
+            'smsg':{
+                handler:function(v,oldv){
+                    this.$emit('schange',this.smsg);  //子组件通过自定义的触发事件将修改的数据传递给父组件
+                },
+                deep:true
+            }
+        }
+    });
+
+    let app=new Vue({
+        el:'#app',
+        data:{
+            notes:[],
+            type:['生活','新闻','体育','出行','生态'],
+            msg:'',
+            search:'',
+            activeType:['生活','新闻','体育','出行','生态'],
+        },
+        methods:{
+            update(v) {
+                let index = 0;
+                this.notes.forEach((element,i)=>{
+                    if(element.id == v.id){
+                        index = i;
+                    }
+                })
+                this.notes.splice(index,1,v);
+            },
+            del(ids){
+                this.notes=this.notes.filter(element=>element.id!=ids)
+            },
+            add(e){
+                let id=this.notes[this.notes.length-1].id+1;
+                let x=e.clientX;
+                let y=e.clientY -80;
+                let color=`rgb(${Math.floor(Math.random()*256)},${Math.floor(Math.random()*256)},${Math.floor(Math.random()*256)} )`;
+                let type=this.type[Math.floor(Math.random()*this.type.length)];
+                this.notes.push({id,content:'',color,x,y,type});
+            },
+            adds(){
+                let id=this.notes[this.notes.length-1].id+1;
+                let x=Math.random()*(window.innerWidth-200);
+                let y=Math.random()*(window.innerHeight-200);
+                let color=`rgb(${Math.floor(Math.random()*256)},${Math.floor(Math.random()*256)},${Math.floor(Math.random()*256)} )`;
+                let type=this.type[Math.floor(Math.random()*this.type.length)];
+                this.notes.push({id,content:this.msg,color,x,y,type});
+                this.msg=''
+            }
+        },
+        computed:{
+          newnotes(){
+              let newnotes=this.notes.filter(element=>element.content.includes(this.search)&&this.activeType.includes(element.type));
+              return newnotes;
+          }
+        },
+        //侦听
+        watch:{
+            'notes':{
+                handler:function(){
+                    localStorage.notes=JSON.stringify(this.notes);
+                },
+                deep:true
+            }
+        },
+        //渲染之后拿数据
+        mounted(){
+            this.notes=JSON.parse(localStorage.notes)
+        }
+    })
+</script>
+</body>
+</html>
